@@ -1,4 +1,3 @@
-// components/Header.tsx
 import React from 'react';
 import { useRouter } from 'next/router';
 import AppBar from '@mui/material/AppBar';
@@ -22,7 +21,7 @@ const Header: React.FC<HeaderProps> = ({ isAuthenticated, onLogout }) => {
   };
 
   return (
-    <AppBar position="static">
+    <AppBar position="static" sx={{ backgroundColor: '#333' }}>
       <Toolbar>
         <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
           {process.env.NEXT_PUBLIC_APP_NAME}
