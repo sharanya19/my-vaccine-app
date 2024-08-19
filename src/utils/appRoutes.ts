@@ -12,6 +12,7 @@ const API_PATH = {
     CENTRES: `${BASE_URL}api/centres/`,
     PATIENTS: `${BASE_URL}api/patients/`,
     VACCINATION_SLOTS: `${BASE_URL}api/vaccination-slots/`,
+    ADDED_RECORD: `${BASE_URL}api/added-records/`
 };
 
 export {

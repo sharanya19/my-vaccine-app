@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react';
-import { Button, MenuItem, Select, InputLabel, FormControl, Drawer, Box, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, TextField } from '@mui/material';
-import { fetchLocations, fetchCentres, fetchPatients, fetchVaccinationSlots } from '../utils/axios';
-import { Location, Centre, Patient, VaccinationSlot } from '../types/api';
+import { Button, MenuItem, Select, InputLabel, FormControl, Drawer, Box, TextField } from '@mui/material';
+import { fetchLocations, fetchCentres, fetchPatients, fetchVaccinationSlots, postRecord, fetchRecords } from '../utils/axios';
+import { Location, Centre, Patient, VaccinationSlot, AddedRecord } from '../types/api';
 import { SelectChangeEvent } from '@mui/material/Select';
-import { AddedRecord } from '../types/api'
 
-const DynamicForm = () => {
+interface DynamicFormProps {
+  onAddRecord: (record: AddedRecord) => void;
+}
+
+const DynamicForm: React.FC<DynamicFormProps> = ({ onAddRecord }) => {
   const [locations, setLocations] = useState<Location[]>([]);
   const [centres, setCentres] = useState<Centre[]>([]);
   const [patients, setPatients] = useState<Patient[]>([]);
@@ -19,8 +22,6 @@ const DynamicForm = () => {
   const [selectedPatientDetails, setSelectedPatientDetails] = useState<Patient | null>(null);
   const [selectedSlotDetails, setSelectedSlotDetails] = useState<VaccinationSlot | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(true);
-  const [addedRecords, setAddedRecords] = useState<AddedRecord[]>([]);
-
 
   useEffect(() => {
     const loadLocations = async () => {
@@ -138,8 +139,9 @@ const DynamicForm = () => {
     const value = event.target.value as number | '';
     setter(value);
   };
+  const [rows, setRows] = useState<AddedRecord[]>([]);
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (selectedLocation && selectedCentre && selectedPatient && selectedSlot) {
       const newRecord: AddedRecord = {
         location: locations.find(loc => loc.id === selectedLocation)?.city ?? 'Unknown',
@@ -156,18 +158,26 @@ const DynamicForm = () => {
         availableSlots: selectedSlotDetails?.available_slots?.toString() ?? 'Unknown',
       };
   
-      setAddedRecords(prevRecords => [...prevRecords, newRecord]);
+      try {
+        await postRecord(newRecord); // Save the new record to the backend
+        onAddRecord(newRecord); // Pass the new record to the parent component
+
+        // Refresh the Data Grid by fetching the updated data
+        const updatedRecords = await fetchRecords();
+        setRows(updatedRecords);
   
-      // Optionally clear selections
-      setSelectedLocation('');
-      setSelectedCentre('');
-      setSelectedPatient('');
-      setSelectedSlot('');
+        // Optionally clear selections
+        setSelectedLocation('');
+        setSelectedCentre('');
+        setSelectedPatient('');
+        setSelectedSlot('');
+      } catch (error) {
+        console.error("Error adding record:", error);
+      }
     } else {
       console.error("All fields must be selected");
     }
   };
-  
 
   const handleDiscard = () => {
     setSelectedLocation('');
@@ -182,211 +192,61 @@ const DynamicForm = () => {
         anchor="right"
         open={drawerOpen}
         onClose={handleDrawerToggle}
+        sx={{ width: 400 }}
       >
-        <Box p={3} width={300}>
+        <Box sx={{ width: 400, padding: 2 }}>
           <FormControl fullWidth margin="normal">
             <InputLabel>Location</InputLabel>
             <Select
               value={selectedLocation}
-              onChange={(e) => handleChange(setSelectedLocation)(e)}
-              fullWidth
+              onChange={handleChange(setSelectedLocation)}
             >
-              {locations.map((loc) => (
-                <MenuItem key={loc.id} value={loc.id}>
-                  {loc.city}
-                </MenuItem>
+              {locations.map(location => (
+                <MenuItem key={location.id} value={location.id}>{location.city}</MenuItem>
               ))}
             </Select>
           </FormControl>
-
-          {selectedDetails && (
-            <>
-              <TextField
-                label="Location State"
-                value={selectedDetails.state || ''}
-                fullWidth
-                margin="normal"
-                disabled
-              />
-              <TextField
-                label="Location Country"
-                value={selectedDetails.country || ''}
-                fullWidth
-                margin="normal"
-                disabled
-              />
-            </>
-          )}
-
-          <FormControl fullWidth margin="normal" disabled={selectedLocation === ''}>
+          <FormControl fullWidth margin="normal">
             <InputLabel>Centre</InputLabel>
             <Select
               value={selectedCentre}
               onChange={handleChange(setSelectedCentre)}
             >
-              {centres.length > 0 ? (
-                centres.map((centre) => (
-                  <MenuItem key={centre.id} value={centre.id}>
-                    {centre.name}
-                  </MenuItem>
-                ))
-              ) : (
-                <MenuItem value="">No Centres Available</MenuItem>
-              )}
+              {centres.map(centre => (
+                <MenuItem key={centre.id} value={centre.id}>{centre.name}</MenuItem>
+              ))}
             </Select>
           </FormControl>
-
-          {selectedCentreDetails && (
-            <>
-              <TextField
-                label="Centre Address"
-                value={selectedCentreDetails.address || ''}
-                fullWidth
-                margin="normal"
-                disabled
-              />
-            </>
-          )}
-
-          <FormControl fullWidth margin="normal" disabled={selectedCentre === ''}>
+          <FormControl fullWidth margin="normal">
             <InputLabel>Patient</InputLabel>
             <Select
               value={selectedPatient}
               onChange={handleChange(setSelectedPatient)}
             >
-              {patients.length > 0 ? (
-                patients.map((patient) => (
-                  <MenuItem key={patient.id} value={patient.id}>
-                    {patient.patient_name}
-                  </MenuItem>
-                ))
-              ) : (
-                <MenuItem value="">No Patients Available</MenuItem>
-              )}
+              {patients.map(patient => (
+                <MenuItem key={patient.id} value={patient.id}>{patient.patient_name}</MenuItem>
+              ))}
             </Select>
           </FormControl>
-
-          {selectedPatientDetails && (
-            <>
-              <TextField
-                label="Patient Age"
-                value={selectedPatientDetails.age || ''}
-                fullWidth
-                margin="normal"
-                disabled
-              />
-              <TextField
-                label="Patient Contact"
-                value={selectedPatientDetails.gender || ''}
-                fullWidth
-                margin="normal"
-                disabled
-              />
-            </>
-          )}
-
-          <FormControl fullWidth margin="normal" disabled={selectedPatient === ''}>
+          <FormControl fullWidth margin="normal">
             <InputLabel>Slot</InputLabel>
             <Select
               value={selectedSlot}
               onChange={handleChange(setSelectedSlot)}
             >
-              {slots.length > 0 ? (
-                slots.map((slot) => (
-                  <MenuItem key={slot.id} value={slot.id}>
-                    {slot.type}
-                  </MenuItem>
-                ))
-              ) : (
-                <MenuItem value="">No Slots Available</MenuItem>
-              )}
+              {slots.map(slot => (
+                <MenuItem key={slot.id} value={slot.id}>{slot.type}</MenuItem>
+              ))}
             </Select>
           </FormControl>
-
-          {selectedSlotDetails && (
-            <>
-              <TextField
-                label="Slot Date"
-                value={selectedSlotDetails.date || ''}
-                fullWidth
-                margin="normal"
-                disabled
-              />
-              <TextField
-                label="Slot Time"
-                value={selectedSlotDetails.time || ''}
-                fullWidth
-                margin="normal"
-                disabled
-              />
-              <TextField
-                label="Available Slots"
-                value={selectedSlotDetails.available_slots || ''}
-                fullWidth
-                margin="normal"
-                disabled
-              />
-            </>
-          )}
-
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={handleAdd}
-            fullWidth
-            style={{ marginTop: '16px' }}
-          >
+          <Button onClick={handleAdd} variant="contained" color="primary">
             Add
           </Button>
-          <Button
-            variant="outlined"
-            onClick={handleDiscard}
-            fullWidth
-            style={{ marginTop: '16px' }}
-          >
+          <Button onClick={handleDiscard} variant="outlined" color="secondary" sx={{ ml: 2 }}>
             Discard
           </Button>
         </Box>
       </Drawer>
-
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>Location</TableCell>
-              <TableCell>Location State</TableCell>
-              <TableCell>Location Country</TableCell>
-              <TableCell>Centre</TableCell>
-              <TableCell>Centre Address</TableCell>
-              <TableCell>Patient</TableCell>
-              <TableCell>Patient Age</TableCell>
-              <TableCell>Patient Contact</TableCell>
-              <TableCell>Slot</TableCell>
-              <TableCell>Slot Date</TableCell>
-              <TableCell>Slot Time</TableCell>
-              <TableCell>Available Slots</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {addedRecords.map((record, index) => (
-              <TableRow key={index}>
-                <TableCell>{record.location}</TableCell>
-                <TableCell>{record.locationState}</TableCell>
-                <TableCell>{record.locationCountry}</TableCell>
-                <TableCell>{record.centre}</TableCell>
-                <TableCell>{record.centreAddress}</TableCell>
-                <TableCell>{record.patient}</TableCell>
-                <TableCell>{record.patientAge}</TableCell>
-                <TableCell>{record.patientContact}</TableCell>
-                <TableCell>{record.slot}</TableCell>
-                <TableCell>{record.slotDate}</TableCell>
-                <TableCell>{record.slotTime}</TableCell>
-                <TableCell>{record.availableSlots}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
     </>
   );
 };

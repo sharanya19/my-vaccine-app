@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { Location, Centre, Patient, VaccinationSlot } from '../types/api';
+import { Location, Centre, Patient, VaccinationSlot, AddedRecord } from '../types/api';
 import { BASE_URL, API_PATH } from './appRoutes';
 import { getToken } from './auth';
 
@@ -64,6 +64,16 @@ export const fetchVaccinationSlots = async (): Promise<VaccinationSlot[]> => {
 
 export const postData = async (endpoint: string, data: any) => {
   const response = await api.post(endpoint, data);
+  return response.data;
+};
+
+export const postRecord = async (record: AddedRecord) => {
+  const response = await api.post(API_PATH.ADDED_RECORD, record);
+  return response.data;
+};
+
+export const fetchRecords = async (): Promise<AddedRecord[]> => {
+  const response = await api.get(API_PATH.ADDED_RECORD);
   return response.data;
 };
 
