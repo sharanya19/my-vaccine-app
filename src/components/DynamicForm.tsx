@@ -17,10 +17,26 @@ const DynamicForm: React.FC<DynamicFormProps> = ({ onAddRecord }) => {
   const [selectedCentre, setSelectedCentre] = useState<number | ''>('');
   const [selectedPatient, setSelectedPatient] = useState<number | ''>('');
   const [selectedSlot, setSelectedSlot] = useState<number | ''>('');
-  const [selectedDetails, setSelectedDetails] = useState<Location | null>(null);
-  const [selectedCentreDetails, setSelectedCentreDetails] = useState<Centre | null>(null);
-  const [selectedPatientDetails, setSelectedPatientDetails] = useState<Patient | null>(null);
-  const [selectedSlotDetails, setSelectedSlotDetails] = useState<VaccinationSlot | null>(null);
+  const [locationDetails, setLocationDetails] = useState<{ country: string; state: string; city: string }>({
+    country: '',
+    state: '',
+    city: ''
+  });
+  const [centreDetails, setCentreDetails] = useState<{ name: string; address: string }>({
+    name: '',
+    address: ''
+  });
+  const [patientDetails, setPatientDetails] = useState<{ name: string; age: number; gender: string }>({
+    name: '',
+    age: 0,
+    gender: ''
+  });
+  const [slotDetails, setSlotDetails] = useState<{ type: string; date: string; time: string; availableSlots: number }>({
+    type: '',
+    date: '',
+    time: '',
+    availableSlots: 0
+  });
   const [drawerOpen, setDrawerOpen] = useState(true);
 
   useEffect(() => {
@@ -97,37 +113,69 @@ const DynamicForm: React.FC<DynamicFormProps> = ({ onAddRecord }) => {
 
   useEffect(() => {
     if (selectedLocation) {
-      const locationDetails = locations.find(loc => loc.id === Number(selectedLocation)) || null;
-      setSelectedDetails(locationDetails);
+      const location = locations.find(loc => loc.id === Number(selectedLocation));
+      if (location) {
+        setLocationDetails({
+          country: location.country,
+          state: location.state,
+          city: location.city
+        });
+      } else {
+        setLocationDetails({ country: '', state: '', city: '' });
+      }
     } else {
-      setSelectedDetails(null);
+      setLocationDetails({ country: '', state: '', city: '' });
     }
   }, [selectedLocation, locations]);
 
   useEffect(() => {
     if (selectedCentre) {
-      const centreDetails = centres.find(centre => centre.id === Number(selectedCentre)) || null;
-      setSelectedCentreDetails(centreDetails);
+      const centre = centres.find(centre => centre.id === Number(selectedCentre));
+      if (centre) {
+        setCentreDetails({
+          name: centre.name,
+          address: centre.address
+        });
+      } else {
+        setCentreDetails({ name: '', address: '' });
+      }
     } else {
-      setSelectedCentreDetails(null);
+      setCentreDetails({ name: '', address: '' });
     }
   }, [selectedCentre, centres]);
 
   useEffect(() => {
     if (selectedPatient) {
-      const patientDetails = patients.find(patient => patient.id === Number(selectedPatient)) || null;
-      setSelectedPatientDetails(patientDetails);
+      const patient = patients.find(patient => patient.id === Number(selectedPatient));
+      if (patient) {
+        setPatientDetails({
+          name: patient.patient_name,
+          age: patient.age,
+          gender: patient.gender
+        });
+      } else {
+        setPatientDetails({ name: '', age: 0, gender: '' });
+      }
     } else {
-      setSelectedPatientDetails(null);
+      setPatientDetails({ name: '', age: 0, gender: '' });
     }
   }, [selectedPatient, patients]);
 
   useEffect(() => {
     if (selectedSlot) {
-      const slotDetails = slots.find(slot => slot.id === Number(selectedSlot)) || null;
-      setSelectedSlotDetails(slotDetails);
+      const slot = slots.find(slot => slot.id === Number(selectedSlot));
+      if (slot) {
+        setSlotDetails({
+          type: slot.type,
+          date: slot.date,
+          time: slot.time,
+          availableSlots: slot.available_slots
+        });
+      } else {
+        setSlotDetails({ type: '', date: '', time: '', availableSlots: 0 });
+      }
     } else {
-      setSelectedSlotDetails(null);
+      setSlotDetails({ type: '', date: '', time: '', availableSlots: 0 });
     }
   }, [selectedSlot, slots]);
 
@@ -139,25 +187,26 @@ const DynamicForm: React.FC<DynamicFormProps> = ({ onAddRecord }) => {
     const value = event.target.value as number | '';
     setter(value);
   };
+
   const [rows, setRows] = useState<AddedRecord[]>([]);
 
   const handleAdd = async () => {
     if (selectedLocation && selectedCentre && selectedPatient && selectedSlot) {
       const newRecord: AddedRecord = {
         location: locations.find(loc => loc.id === selectedLocation)?.city ?? 'Unknown',
-        locationState: selectedDetails?.state ?? 'Unknown',
-        locationCountry: selectedDetails?.country ?? 'Unknown',
-        centre: centres.find(centre => centre.id === selectedCentre)?.name ?? 'Unknown',
-        centreAddress: selectedCentreDetails?.address ?? 'Unknown',
-        patient: patients.find(patient => patient.id === selectedPatient)?.patient_name ?? 'Unknown',
-        patientAge: selectedPatientDetails?.age?.toString() ?? 'Unknown',
-        patientContact: selectedPatientDetails?.gender ?? 'Unknown',
-        slot: slots.find(slot => slot.id === selectedSlot)?.type ?? 'Unknown',
-        slotDate: selectedSlotDetails?.date ?? 'Unknown',
-        slotTime: selectedSlotDetails?.time ?? 'Unknown',
-        availableSlots: selectedSlotDetails?.available_slots?.toString() ?? 'Unknown',
+        locationState: locationDetails.state ?? 'Unknown',
+        locationCountry: locationDetails.country ?? 'Unknown',
+        centre: centreDetails.name ?? 'Unknown',
+        centreAddress: centreDetails.address ?? 'Unknown',
+        patient: patientDetails.name ?? 'Unknown',
+        patientAge: patientDetails.age?.toString() ?? 'Unknown',
+        patientContact: patients.find(patient => patient.id === selectedPatient)?.gender ?? 'Unknown',
+        slot: slotDetails.type ?? 'Unknown',
+        slotDate: slotDetails.date ?? 'Unknown',
+        slotTime: slotDetails.time ?? 'Unknown',
+        availableSlots: slotDetails.availableSlots?.toString() ?? 'Unknown',
       };
-  
+
       try {
         await postRecord(newRecord); // Save the new record to the backend
         onAddRecord(newRecord); // Pass the new record to the parent component
@@ -165,7 +214,7 @@ const DynamicForm: React.FC<DynamicFormProps> = ({ onAddRecord }) => {
         // Refresh the Data Grid by fetching the updated data
         const updatedRecords = await fetchRecords();
         setRows(updatedRecords);
-  
+
         // Optionally clear selections
         setSelectedLocation('');
         setSelectedCentre('');
@@ -206,6 +255,31 @@ const DynamicForm: React.FC<DynamicFormProps> = ({ onAddRecord }) => {
               ))}
             </Select>
           </FormControl>
+          {selectedLocation && (
+            <>
+              <TextField
+                fullWidth
+                margin="normal"
+                label="Country"
+                value={locationDetails.country}
+                InputProps={{ readOnly: true }}
+              />
+              <TextField
+                fullWidth
+                margin="normal"
+                label="State"
+                value={locationDetails.state}
+                InputProps={{ readOnly: true }}
+              />
+              <TextField
+                fullWidth
+                margin="normal"
+                label="City"
+                value={locationDetails.city}
+                InputProps={{ readOnly: true }}
+              />
+            </>
+          )}
           <FormControl fullWidth margin="normal">
             <InputLabel>Centre</InputLabel>
             <Select
@@ -217,6 +291,24 @@ const DynamicForm: React.FC<DynamicFormProps> = ({ onAddRecord }) => {
               ))}
             </Select>
           </FormControl>
+          {selectedCentre && (
+            <>
+              <TextField
+                fullWidth
+                margin="normal"
+                label="Name"
+                value={centreDetails.name}
+                InputProps={{ readOnly: true }}
+              />
+              <TextField
+                fullWidth
+                margin="normal"
+                label="Address"
+                value={centreDetails.address}
+                InputProps={{ readOnly: true }}
+              />
+            </>
+          )}
           <FormControl fullWidth margin="normal">
             <InputLabel>Patient</InputLabel>
             <Select
@@ -228,6 +320,31 @@ const DynamicForm: React.FC<DynamicFormProps> = ({ onAddRecord }) => {
               ))}
             </Select>
           </FormControl>
+          {selectedPatient && (
+            <>
+              <TextField
+                fullWidth
+                margin="normal"
+                label="Patient Name"
+                value={patientDetails.name}
+                InputProps={{ readOnly: true }}
+              />
+              <TextField
+                fullWidth
+                margin="normal"
+                label="Age"
+                value={patientDetails.age}
+                InputProps={{ readOnly: true }}
+              />
+              <TextField
+                fullWidth
+                margin="normal"
+                label="Gender"
+                value={patientDetails.gender}
+                InputProps={{ readOnly: true }}
+              />
+            </>
+          )}
           <FormControl fullWidth margin="normal">
             <InputLabel>Slot</InputLabel>
             <Select
@@ -239,12 +356,40 @@ const DynamicForm: React.FC<DynamicFormProps> = ({ onAddRecord }) => {
               ))}
             </Select>
           </FormControl>
-          <Button onClick={handleAdd} variant="contained" color="primary">
-            Add
-          </Button>
-          <Button onClick={handleDiscard} variant="outlined" color="secondary" sx={{ ml: 2 }}>
-            Discard
-          </Button>
+          {selectedSlot && (
+            <>
+            
+              <TextField
+                fullWidth
+                margin="normal"
+                label="Date"
+                value={slotDetails.date}
+                InputProps={{ readOnly: true }}
+              />
+              <TextField
+                fullWidth
+                margin="normal"
+                label="Time"
+                value={slotDetails.time}
+                InputProps={{ readOnly: true }}
+              />
+              <TextField
+                fullWidth
+                margin="normal"
+                label="Available Slots"
+                value={slotDetails.availableSlots}
+                InputProps={{ readOnly: true }}
+              />
+            </>
+          )}
+          <Box display="flex" justifyContent="space-between" marginTop={2}>
+            <Button variant="contained" color="primary" onClick={handleAdd}>
+              Add
+            </Button>
+            <Button variant="outlined" color="secondary" onClick={handleDiscard}>
+              Discard
+            </Button>
+          </Box>
         </Box>
       </Drawer>
     </>

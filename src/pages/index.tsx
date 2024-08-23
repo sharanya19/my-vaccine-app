@@ -3,7 +3,7 @@ import { Container, Button, Typography, Box, Paper } from '@mui/material';
 import { DataGrid, GridColDef, GridRowsProp } from '@mui/x-data-grid';
 import DynamicForm from '../components/DynamicForm';
 import { AddedRecord } from '@/types/api';
-import { fetchRecords } from '../utils/axios'; // Import the fetchRecords function
+import { fetchRecords } from '../utils/axios';
 
 const HomePage = () => {
   const [isFormVisible, setIsFormVisible] = useState(false);
@@ -44,7 +44,7 @@ const HomePage = () => {
     };
 
     loadRecords();
-  }, []); // Load records only on initial render
+  }, []);
 
   return (
     <Container>
@@ -95,7 +95,7 @@ const HomePage = () => {
         sx={{
           padding: 4,
           borderRadius: 2,
-          backgroundColor: '#fafafa', // Light grey background color
+          backgroundColor: '#fafafa',
           width: '100%',
           maxWidth: 1200,
           margin: 'auto',
@@ -108,8 +108,6 @@ const HomePage = () => {
           <DataGrid
             rows={records as GridRowsProp}
             columns={columns}
-            pageSize={5}
-            rowsPerPageOptions={[5, 10, 20]} // Optional: Add page size options if needed
           />
         </div>
       </Paper>
